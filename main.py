@@ -35,9 +35,9 @@ safe_roles = set()
 MINE_CHANCE = 0.05
 TIMEOUT_DURATION = 5
 
-GIF_BOOM = "https://cdn.discordapp.com/attachments/1568237955062042677/1568275059959795712/twitter-g"
-GIF_SAFE = "https://cdn.discordapp.com/attachments/1568237955062042677/1568275059954875127/FHd3gGzeC"
-GIF_ADMIN = "https://cdn.discordapp.com/attachments/1568237955062042677/1568274256331149342/GDMVHQ9m"
+GIF_BOOM = "https://cdn.discordapp.com/attachments/1568209853644808284/1568576458555920504/twitter-gif-2012951877365731428_6aedcee94dc3c.gif?ex=6af0522a&is=6aef00aa&hm=565720bad624beeaa974a353d3681d740a00ccb5d958d71263dc4c6a7ad2a740&"
+GIF_SAFE = "https://cdn.discordapp.com/attachments/1568209853644808284/1568576458023112774/FHd3gGzeCQAV2e5H3J.gif?ex=6af0522a&is=6aef00aa&hm=39dbcbb29b963c86a17a351e6479599b5212eaa4f803dc3289415c0a42a5c0bb&"
+GIF_ADMIN = "https://cdn.discordapp.com/attachments/1568209853644808284/1568576457398034543/GDMVHQ9mFLCPUuNiPZop.gif?ex=6af0522a&is=6aef00aa&hm=c171c4b927d99d4c8e19f892d8ec0ea0aebea0736e977ed40cfe4d2641c24600&"
 
 @bot.event
 async def on_ready():
@@ -123,7 +123,7 @@ async def on_message(message):
                 await message.author.timeout(duration, reason="Dẫm phải mìn do Tachyon đặt!")
                 
                 embed_boom = discord.Embed(
-                    description=f"Chuột lang {message.author.mention}! Cậu giẫm phải mìn nghiên cứu rồi! Tazuna bảo cậu phải chữa trị trong {TIMEOUT_DURATION} giây đấy, nằm im nào!",
+                    description=f"Chuột lang {message.author.mention}! Cậu giẫm phải mìn nghiên cứu rồi! Tazuna bảo cậu phải đi chữa trị trong {TIMEOUT_DURATION} giây đấy, nằm im nào!",
                     color=discord.Color.red()
                 )
                 embed_boom.set_image(url=GIF_BOOM)
