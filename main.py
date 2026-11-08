@@ -33,15 +33,18 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 bomb_channels = set()
 safe_roles = set()
 
+GLOBAL_HIT_CHANCE = 0.05
+
 bomb_pool = [
-    {"rate": 1.0, "duration": 5}
+    {"weight": 50.0, "duration": 5},
+    {"weight": 50.0, "duration": 30}
 ]
 
 bomb_leaderboard = {}
 
-GIF_BOOM = "https://cdn.discordapp.com/attachments/1568209853644808284/1568576458555920504/twitter-gif-2012951877365731428_6aedcee94dc3c.gif?ex=6af0faea&is=6aefa96a&hm=d917a2dac868309bc8b8bc59b9a312a6bdb69884acd6b16851ed8e93a5f9fbf0&"
-GIF_SAFE = "https://cdn.discordapp.com/attachments/1568209853644808284/1568576458023112774/FHd3gGzeCQAV2e5H3J.gif?ex=6af0faea&is=6aefa96a&hm=8a6751135168051c4ec36490da0deb5bf4b01f21122211754fd1feb55dbabc26&"
-GIF_ADMIN = "https://cdn.discordapp.com/attachments/1568209853644808284/1568576457398034543/GDMVHQ9mFLCPUuNiPZop.gif?ex=6af0faea&is=6aefa96a&hm=436dc2da900fbf85432eb21c8c2dedb1f898afcbebd2c0cb1800d6a3ca938f2f&"
+GIF_BOOM = "https://cdn.discordapp.com/attachments/1568209853644808284/1568576458555920504/twitter-gif-2012951877365731428_6aedcee94dc3c.gif?ex=6af1a3aa&is=6af0522a&hm=83dc4154c3c5c642bc5a5a049e5807d2a05d85c18c4c9c1dbd0d7794faed3b89&"
+GIF_SAFE = "https://cdn.discordapp.com/attachments/1568209853644808284/1568576458023112774/FHd3gGzeCQAV2e5H3J.gif?ex=6af1a3aa&is=6af0522a&hm=93b279c299daf782ce941a86674ac6d82d3d5c4f0b118a188c144236e213726a&"
+GIF_ADMIN = "https://cdn.discordapp.com/attachments/1568209853644808284/1568576457398034543/GDMVHQ9mFLCPUuNiPZop.gif?ex=6af1a3aa&is=6af0522a&hm=41eeb29a556cdb04d83bcf2cb5e312ee31570e8115084686153870d64650155c&"
 GIF_LEADERBOARD = "https://cdn.discordapp.com/attachments/1568209853644808284/1568914176494149682/kvG34LTIqAuTuZ8q39D.gif?ex=6af18cb0&is=6af03b30&hm=93214d8b4c65e4418f9aee024080a6c6e26fac25a0a1e1097eb63256ffcd1d3f&"
 
 @bot.event
@@ -80,43 +83,49 @@ async def remove_safe_role(ctx, role: discord.Role):
     else:
         await ctx.send("Role này hiện tại chưa an toàn.")
 
+@bot.command(name='bombrateset')
+@commands.has_permissions(administrator=True)
+async def bomb_rate_set(ctx, chance: float):
+    global GLOBAL_HIT_CHANCE
+    GLOBAL_HIT_CHANCE = chance
+    await ctx.send(f"⚙️ Đã đặt tỉ lệ dẫm phải mìn thành: **{chance * 100}%**")
+
 @bot.command(name='addbomb')
 @commands.has_permissions(administrator=True)
-async def add_bomb(ctx, rate: float, duration: int):
+async def add_bomb(ctx, weight: float, duration: int):
     global bomb_pool
-    bomb_pool.append({"rate": rate, "duration": duration})
-    
-    total_rate = sum(b["rate"] for b in bomb_pool)
-    await ctx.send(f"✅ Đã thêm loại mìn mới: Tỉ lệ `{rate * 100}%`, Timeout `{duration}s`. (Tổng tỉ lệ pool hiện tại: `{total_rate * 100}%`).")
+    bomb_pool.append({"weight": weight, "duration": duration})
+    await ctx.send(f"✅ Đã thêm loại mìn: Trọng số/Tỉ lệ pool `{weight}%`, Timeout `{duration}s`.")
 
 @bot.command(name='removebomb')
 @commands.has_permissions(administrator=True)
-async def remove_bomb(ctx, rate: float, duration: int):
+async def remove_bomb(ctx, weight: float, duration: int):
     global bomb_pool
-    target = {"rate": rate, "duration": duration}
+    target = {"weight": weight, "duration": duration}
     if target in bomb_pool:
         if len(bomb_pool) == 1:
-            await ctx.send("⚠️ Không thể xóa hết tất cả các loại mìn trong pool! Phải giữ lại ít nhất 1 loại (Đừng mang hết đi chứ!).")
+            await ctx.send("⚠️ Phải giữ lại ít nhất 1 loại mìn trong pool (Đừng gỡ hết chúng chứ)!")
             return
         bomb_pool.remove(target)
-        total_rate = sum(b["rate"] for b in bomb_pool)
-        await ctx.send(f"🗑️ Đã xóa mìn (Tỉ lệ: `{rate * 100}%`, Timeout: `{duration}s`). (Tổng tỉ lệ pool hiện tại: `{total_rate * 100}%`).")
+        await ctx.send(f"🗑️ Đã xóa mìn (Trọng số: `{weight}%`, Timeout: `{duration}s`).")
     else:
-        await ctx.send("❌ Loại mìn này chưa được chôn xuống!.")
+        await ctx.send("❌ Loại mìn này chưa từng được chôn xuống (Sai thông số).")
 
 @bot.command(name='bomblist')
 async def bomb_list(ctx):
-    total_rate = sum(b["rate"] for b in bomb_pool)
+    total_weight = sum(b["weight"] for b in bomb_pool)
     embed = discord.Embed(
-        title="💣 Danh Sách số lượng bomb đã chôn (Đừng báo Tazuna biết).",
-        description=f"Tổng tỉ lệ cấu hình: **{total_rate * 100}%**",
+        title="💣 Danh Sách Các Phân Loại Mìn",
+        description=f"Tỉ lệ dẫm mìn tổng cấu hình (`!bombrateset`): **{GLOBAL_HIT_CHANCE * 100}%**",
         color=discord.Color.blue()
     )
+    embed.add_field(name="Tỉ lệ tổng dẫm mìn", value=f"{GLOBAL_HIT_CHANCE * 100}%", inline=False)
     
     for idx, bomb in enumerate(bomb_pool, 1):
+        actual_chance = (bomb["weight"] / total_weight) * 100 if total_weight > 0 else 0
         embed.add_field(
             name=f"Loại mìn #{idx}",
-            value=f"• Tỉ lệ dẫm: **{bomb['rate'] * 100}%**\n• Thời gian phạt: **{bomb['duration']} giây**",
+            value=f"• Trọng số pool: **{bomb['weight']}** (~**{actual_chance:.1f}%** khi dẫm)\n• Thời gian phạt: **{bomb['duration']} giây**",
             inline=False
         )
     await ctx.send(embed=embed)
@@ -125,12 +134,12 @@ async def bomb_list(ctx):
 async def bomb_leaderboard_cmd(ctx):
     embed = discord.Embed(
         title="🏆 Bảng Xếp Hạng Dẫm Mìn",
-        description="Các chuột lang giẫm nhiều thật đấy. Cố gắng thêm đi nhé.",
+        description="Vinh danh những 'chuột lang' cống hiến nhất cho Tachyon!",
         color=discord.Color.gold()
     )
     
     if not bomb_leaderboard:
-        embed.add_field(name="Chưa có dữ liệu", value="Chưa có ai dẫm phải mìn cả! (Chán thật)", inline=False)
+        embed.add_field(name="Chưa có dữ liệu", value="Chưa có ai dẫm phải mìn cả!", inline=False)
     else:
         sorted_lb = sorted(bomb_leaderboard.items(), key=lambda item: item[1], reverse=True)[:10]
         lb_text = ""
@@ -159,22 +168,19 @@ async def on_message(message):
     has_safe_role = any(role_id in safe_roles for role_id in user_role_ids)
     is_admin = message.author.guild_permissions.administrator
 
-    rand_val = random.random()
-    cumulative = 0.0
-    triggered_bomb = None
+    # CHU KÌ 1: Roll tỉ lệ dẫm phải mìn chung của user
+    has_hit_mine = random.random() < GLOBAL_HIT_CHANCE
 
-    for bomb in bomb_pool:
-        cumulative += bomb["rate"]
-        if rand_val <= cumulative:
-            triggered_bomb = bomb
-            break
-    
-    if not triggered_bomb:
+    if not has_hit_mine:
         return
+
+    # CHU KÌ 2: Random loại bomb user sẽ mắc phải dựa vào pool bomb (dùng random.choices theo trọng số weight)
+    weights = [b["weight"] for b in bomb_pool]
+    triggered_bomb = random.choices(bomb_pool, weights=weights, k=1)[0]
 
     if has_safe_role:
         embed_safe = discord.Embed(
-            description=f"Chuột lang {message.author.mention}! Đó là vị trí tôi đặt bo- Không nổ à?",
+            description=f"Chuột lang {message.author.mention}! Đó là vị trí tôi đặt bo- Không nổ à? Sao lại thế nhỉ...? (Do có role an toàn.)",
             color=discord.Color.green()
         )
         embed_safe.set_image(url=GIF_SAFE)
@@ -182,7 +188,7 @@ async def on_message(message):
         
     elif is_admin:
         embed_boom = discord.Embed(
-            description=f"Chuột lang {message.author.mention}! Cậu giẫm phải mìn nghiên cứu loại **{triggered_bomb['duration']}s** rồi! Ủa...là Cafe đấy à? Không có gì đâuuuu!",
+            description=f"Chuột lang {message.author.mention}! Cậu giẫm phải mìn nghiên cứu loại **{triggered_bomb['duration']}s** rồi. Ủa? Cafe đấy à? Không có gì đâuuu. (Do quyền hạn nên không thể timeout)",
             color=discord.Color.red()
         )
         embed_boom.set_image(url=GIF_ADMIN)
@@ -198,7 +204,7 @@ async def on_message(message):
             await message.author.timeout(duration, reason=f"Dẫm phải mìn {timeout_duration}s do Tachyon đặt!")
             
             embed_boom = discord.Embed(
-                description=f"Chuột lang {message.author.mention}! Cậu giẫm phải mìn nghiên cứu loại **{timeout_duration} giây** rồi, phải mang cậu đi chữa trị thôi!",
+                description=f"Chuột lang {message.author.mention}! Cậu giẫm phải mìn nghiên cứu loại **{timeout_duration} giây** rồi! Phải mang cậu đi chữa trị thôi!",
                 color=discord.Color.red()
             )
             embed_boom.set_image(url=GIF_BOOM)
